@@ -1,40 +1,61 @@
-import React from "react";
+/* eslint-disable react/no-unescaped-entities */
+import React, { useCallback } from "react";
 
 import Layout from "../components/layout";
 import SEO from "../components/seo";
-import catAndHumanIllustration from "../images/cat-and-human-illustration.svg";
+import Dropzone from "react-dropzone";
+import { useArray } from "react-hanger";
+import FileList from "../components/FileList";
+import gettextParser from "gettext-parser";
 
 function IndexPage() {
+  const files = useArray([]);
+  const onDrop = useCallback((acceptedFiles) => {
+    acceptedFiles.forEach((file) => {
+      const reader = new FileReader();
+
+      reader.onabort = () => console.log("file reading was aborted");
+      reader.onerror = () => console.log("file reading has failed");
+      reader.onload = () => {
+        // Do whatever you want with the file contents
+        const binaryStr = reader.result;
+        console.log({ binaryStr, content: gettextParser.po.parse(binaryStr) });
+        files.removeById(file.path);
+        files.push({
+          id: file.path,
+          file,
+          content: gettextParser.po.parse(binaryStr),
+        });
+      };
+      reader.readAsText(file);
+    });
+  }, []);
+
   return (
     <Layout>
       <SEO
-        keywords={[`gatsby`, `tailwind`, `react`, `tailwindcss`]}
-        title="Home"
+        keywords={["utils", "wordcount", "po", "translations"]}
+        title="PoWordCount"
       />
 
+      <h1 className="font-bold my-3 text-2xl">Po files word count</h1>
+
       <section className="text-center">
-        <img
-          alt="Cat and human sitting on a couch"
-          className="block w-1/2 mx-auto mb-8"
-          src={catAndHumanIllustration}
-        />
-
-        <h2 className="inline-block p-3 mb-4 text-2xl font-bold bg-yellow-400">
-          Hey there! Welcome to your first Gatsby site.
-        </h2>
-
-        <p className="leading-loose">
-          This is a barebones starter for Gatsby styled using{` `}
-          <a
-            className="font-bold text-gray-900 no-underline"
-            href="https://tailwindcss.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Tailwind CSS
-          </a>
-          , a utility-first CSS framework.
-        </p>
+        <div className="border-solid bg-gray-300 border-gray-600 mb-3">
+          <Dropzone onDrop={onDrop}>
+            {({ getRootProps, getInputProps }) => (
+              <section>
+                <div {...getRootProps()}>
+                  <input {...getInputProps()} />
+                  <p className="p-5">
+                    Drop some files here, or click to select files
+                  </p>
+                </div>
+              </section>
+            )}
+          </Dropzone>
+        </div>
+        <FileList files={files}></FileList>
       </section>
     </Layout>
   );
