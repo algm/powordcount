@@ -1,19 +1,25 @@
-import React from "react";
-import PropTypes from "prop-types";
+import React from 'react';
+import PropTypes from 'prop-types';
+import exportExcel from '../services/excel';
 
 function FileList({ files }) {
   const translations = files.value.map(
     ({ file, content: { translations } }) => {
-      const translated = Object.values(translations).map((translation) => {
-        const translationObj = Object.values(translation)[0];
+      const translated = Object.values(translations)
+        .filter(
+          (t) => Object.values(t)[0].msgid && Object.values(t)[0].msgid.length
+        )
+        .map((translation) => {
+          const translationObj = Object.values(translation)[0];
 
-        return {
-          original: translationObj.msgid,
-          translation: translationObj.msgstr[0],
-          originalWords: translationObj.msgid.trim().split(/\s+/).length,
-          translationWords: translationObj.msgstr[0].trim().split(/\s+/).length,
-        };
-      });
+          return {
+            original: translationObj.msgid,
+            translation: translationObj.msgstr[0],
+            originalWords: translationObj.msgid.trim().split(/\s+/).length,
+            translationWords: translationObj.msgstr[0].trim().split(/\s+/)
+              .length,
+          };
+        });
 
       return {
         file: file.path,
@@ -40,22 +46,61 @@ function FileList({ files }) {
   };
 
   return (
-    <div className="overflow-y-auto text-left">
-      <div className="m-b-3 flex flex-row">
-        <div className="px-2">
-          <strong>Total words</strong>
+    <div className="overflow-y-auto text-left space-y-3 items-center">
+      <div className="flex flex-row space-x-2">
+        <div className="flex flex-row space-x-2 flex-1 items-start justify-center">
+          <div className="py-2 pr-2">
+            <strong>Total words</strong>
+          </div>
+          <div className="py-2 pr-2">original: {totals.original}</div>
+          <div className="py-2">translation: {totals.translation}</div>
         </div>
-        <div className="px-2">original: {totals.original}</div>
-        <div className="px-2">translation: {totals.translation}</div>
+        <div className="py-2">
+          <button
+            className="p-3 text-center bg-blue-700 border-1 border-blue-900 text-blue-200"
+            onClick={() => {
+              const data = translations.reduce((arr = [], file) => {
+                arr.push(
+                  ...file.translations.map((t) => ({ file: file.file, ...t }))
+                );
+
+                return arr;
+              }, []);
+
+              console.log({ data });
+
+              exportExcel(data, 'all_translations');
+            }}
+          >
+            Export to Excel
+          </button>
+        </div>
       </div>
 
       {translations.map((t, i) => {
         return (
-          <div key={i} className="flex flex-row p-3">
-            <div className="px-2">{t.file}</div>
-            <div className="px-2">
+          <div
+            key={i}
+            className="flex flex-row items-center justify-between content-between p-3 space-x-3 border border-gray-600"
+          >
+            <div className="py-2 pr-2 flex-1">{t.file}</div>
+            <div className="py-2 pr-2 flex-1">
               <p>original words: {t.totalCounts.original}</p>
               <p>translation words: {t.totalCounts.translation}</p>
+            </div>
+            <div className="py-2">
+              <button
+                className="p-3 text-center bg-blue-700 border-1 border-blue-900 text-blue-200"
+                onClick={() => {
+                  const data = t.translations;
+
+                  console.log({ data });
+
+                  exportExcel(data, t.file);
+                }}
+              >
+                Export to Excel
+              </button>
             </div>
           </div>
         );
